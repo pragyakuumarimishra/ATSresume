@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Screening System</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#1d4ed8', /* Blue 700 */
+                        'secondary': '#3b82f6', /* Blue 500 */
+                        'success': '#10b981', /* Green 500 */
+                        'warning': '#f59e0b', /* Amber 500 */
+                        'danger': '#ef4444', /* Red 500 */
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        
+        .progress-bar-container {
+            height: 1.5rem;
+            background-color: #e5e7eb;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .progress-bar {
+            height: 100%;
+            transition: width 0.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .file-upload-zone {
+            border: 2px dashed #9ca3af;
+            background-color: #f3f4f6;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .file-upload-zone:hover {
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 sm:p-8 font-sans">
+
+    <div class="max-w-7xl mx-auto bg-white shadow-2xl rounded-2xl p-6 sm:p-12 border border-gray-100">
+        <h1 class="text-3xl sm:text-5xl font-extrabold mb-2 text-center text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+            <svg class="h-8 w-8 sm:h-10 sm:w-10 inline-block align-text-bottom mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002 2h2m0 0a2 2 0 002 2H9a2 2 0 002-2M9 5V3m6 2V3"></path>
+            </svg>
+            Smart Resume Screening System
+        </h1>
+        <p class="text-center text-gray-500 mb-10 text-lg">
+            A 360-degree AI analysis for efficient, objective candidate ranking.
+        </p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            <!-- Job Description Input -->
+            <div class="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-inner">
+                <label for="jobDescription" class="block text-xl font-bold text-gray-800 flex items-center">
+                    1. Job Description (JD)
+                </label>
+                <textarea id="jobDescription" rows="10" class="w-full p-4 border border-gray-300 rounded-lg shadow-md focus:ring-secondary focus:border-secondary transition duration-150" placeholder="e.g., Senior Software Engineer: Must have 5+ years of React experience, Node.js proficiency, and a CS degree. Critical requirement: Must have a minimum of 5 years experience."></textarea>
+            </div>
+
+            <!-- Resume Input - Modified for Upload -->
+            <div class="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-inner">
+                <label for="resumeInput" class="block text-xl font-bold text-gray-800 flex items-center">
+                    2. Candidate Resume Text (or Uploaded File)
+                </label>
+                
+                <label for="resumeFile" class="file-upload-zone block text-gray-500">
+                    <input type="file" id="resumeFile" class="hidden" accept=".txt,.pdf" onchange="handleFileSelect(event)">
+                    <p class="text-primary font-semibold mb-1">Click here to upload Resume file (.txt or .pdf)</p>
+                    <p class="text-sm" id="fileInstructionText">(.pdf files are processed via multimodal AI for best results.)</p>
+                </label>
+
+                <textarea id="resumeText" rows="7" class="w-full p-4 border border-gray-300 rounded-lg shadow-md focus:ring-secondary focus:border-secondary transition duration-150 bg-white" placeholder="Paste your resume text here, or upload a .txt or .pdf file above."></textarea>
+            </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="flex justify-center mb-12">
+            <button id="analyzeBtn" onclick="analyzeResumeAndJD()" class="px-10 py-4 bg-primary text-white text-xl font-bold rounded-xl shadow-lg hover:bg-secondary focus:outline-none focus:ring-4 focus:ring-primary/50 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105">
+                Start AI Screening
+            </button>
+        </div>
+
+        <!-- Results Display -->
+        <div id="loadingIndicator" class="hidden text-center text-xl text-secondary font-medium p-8 border border-blue-200 rounded-xl bg-blue-50 shadow-inner">
+            <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-primary inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            AI is analyzing the context and ranking the candidate...
+        </div>
+
+        <div id="resultsContainer" class="hidden space-y-8">
+            <h2 class="text-3xl font-bold text-gray-800 border-b-4 border-primary/20 pb-4 mb-6">Screening Report</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 1. Match Score Card -->
+                <div class="lg:col-span-2 p-8 bg-blue-50 rounded-xl shadow-lg border-l-4 border-primary">
+                    <p class="text-2xl font-bold text-primary mb-3">Overall Match Score</p>
+                    <div class="progress-bar-container mb-4">
+                        <div id="matchScoreBar" class="progress-bar" style="width: 0%; background-color: #1d4ed8;">0%</div>
+                    </div>
+                    <p id="scoreSummary" class="text-gray-700 italic text-lg font-medium"></p>
+                </div>
+
+                <!-- 2. Hard Requirement Status -->
+                <div id="hardReqStatusCard" class="p-6 rounded-xl shadow-lg border-l-4">
+                    <p class="text-xl font-bold mb-3 flex items-center">
+                        Hard Requirement Check
+                    </p>
+                    <div class="text-lg text-gray-700">
+                        <span id="reqIcon" class="inline-block mr-2 text-2xl"></span>
+                        <span id="reqText" class="font-medium"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Structured Data & Skills/Gaps -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- Extracted Info Panel -->
+                <div class="p-6 bg-yellow-50 rounded-xl shadow-lg border-l-4 border-warning">
+                    <h3 class="text-xl font-bold text-warning mb-4 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Candidate Profile Facts
+                    </h3>
+                    <p class="text-lg font-medium text-gray-800 mb-2">Experience:</p>
+                    <p id="extractedExp" class="text-gray-700 ml-4 mb-4"></p>
+                    
+                    <p class="text-lg font-medium text-gray-800 mb-2">Education:</p>
+                    <p id="extractedEdu" class="text-gray-700 ml-4"></p>
+                </div>
+
+                <!-- Skills Matched -->
+                <div class="p-6 bg-green-50 rounded-xl shadow-lg border-l-4 border-success">
+                    <h3 class="text-xl font-bold text-success mb-4 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Qualifications Met (Pros)
+                    </h3>
+                    <ul id="skillsMatchedList" class="list-disc ml-6 text-gray-700 space-y-1">
+                        <!-- Matched skills will be inserted here -->
+                    </ul>
+                </div>
+
+                <!-- Gaps Identified -->
+                <div class="p-6 bg-red-50 rounded-xl shadow-lg border-l-4 border-danger">
+                    <h3 class="text-xl font-bold text-danger mb-4 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Missing Requirements (Gaps)
+                    </h3>
+                    <ul id="gapsIdentifiedList" class="list-disc ml-6 text-gray-700 space-y-1">
+                        <!-- Gaps will be inserted here -->
+                    </ul>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // Global Constants
+        const GEMINI_MODEL = "gemini-2.5-flash-preview-05-20";
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=`;
+        
+        // Global state for uploaded file data
+        let uploadedFile = { data: null, mimeType: null, isPdf: false };
+
+        // DOM Elements
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const matchScoreBar = document.getElementById('matchScoreBar');
+        const scoreSummary = document.getElementById('scoreSummary');
+        const skillsMatchedList = document.getElementById('skillsMatchedList');
+        const gapsIdentifiedList = document.getElementById('gapsIdentifiedList');
+        const extractedExp = document.getElementById('extractedExp');
+        const extractedEdu = document.getElementById('extractedEdu');
+        const hardReqStatusCard = document.getElementById('hardReqStatusCard');
+        const reqIcon = document.getElementById('reqIcon');
+        const reqText = document.getElementById('reqText');
+
+        /**
+         * Converts score to a corresponding color for the progress bar.
+         * @param {number} score - The match score (0-100).
+         * @returns {string} Tailwind CSS color class.
+         */
+        function getColorForScore(score) {
+            if (score >= 80) return '#10b981'; // Green (success)
+            if (score >= 60) return '#3b82f6'; // Blue (secondary)
+            if (score >= 40) return '#f59e0b'; // Amber (warning)
+            return '#ef4444'; // Red (danger)
+        }
+
+        /**
+         * Implements exponential backoff retry logic for API calls.
+         * @param {function} fn - The function to execute.
+         * @param {number} maxRetries - Maximum number of retries.
+         * @returns {Promise<any>}
+         */
+        async function fetchWithRetry(fn, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    return await fn();
+                } catch (error) {
+                    if (i === maxRetries - 1) {
+                        throw error;
+                    }
+                    // Wait for 2^i seconds before retrying
+                    const delay = Math.pow(2, i) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+        
+        /**
+         * Reads the content of the selected file.
+         * For TXT, it populates the textarea.
+         * For PDF, it stores the Base64 data for multimodal API submission.
+         * @param {Event} event - The change event from the file input.
+         */
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            const resumeTextarea = document.getElementById('resumeText');
+            
+            uploadedFile = { data: null, mimeType: null, isPdf: false };
+            resumeTextarea.value = '';
+
+            if (!file) return;
+
+            const fileName = file.name.toLowerCase();
+            const mimeType = file.type || (fileName.endsWith('.pdf') ? 'application/pdf' : 'text/plain');
+
+            // Set loading state
+            resumeTextarea.placeholder = `Processing file: ${fileName}...`;
+            analyzeBtn.disabled = true;
+
+            const reader = new FileReader();
+
+            if (fileName.endsWith('.txt')) {
+                // Handle TXT files as plain text input
+                reader.onload = function(e) {
+                    resumeTextarea.value = e.target.result;
+                    resumeTextarea.placeholder = "Paste your resume text here, or upload a .txt or .pdf file above.";
+                    analyzeBtn.disabled = false;
+                };
+                reader.readAsText(file);
+            } else if (fileName.endsWith('.pdf')) {
+                // Handle PDF files as multimodal input (Base64)
+                reader.onload = function(e) {
+                    const base64Data = e.target.result.split(',')[1];
+                    uploadedFile = { data: base64Data, mimeType: mimeType, isPdf: true };
+                    
+                    // Update textarea to confirm PDF readiness, preventing manual text entry from overriding
+                    resumeTextarea.value = `PDF File Ready for Analysis:\n${fileName} (${(file.size / 1024 / 1024).toFixed(2)} MB)\n\n-- AI will read content directly from the file. --`;
+                    resumeTextarea.placeholder = "PDF content loaded via Base64.";
+                    analyzeBtn.disabled = false;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // Handle unsupported formats
+                resumeTextarea.value = `Unsupported file type: ${fileName}. Please use a .txt or .pdf file.`;
+                analyzeBtn.disabled = false;
+            }
+        }
+
+
+        /**
+         * Main function to analyze the resume and job description.
+         */
+        async function analyzeResumeAndJD() {
+            const jd = document.getElementById('jobDescription').value.trim();
+            const resumeText = document.getElementById('resumeText').value.trim();
+
+            if (!jd || (!resumeText && !uploadedFile.data)) {
+                const errorMessage = "Please enter the Job Description and either paste or upload a Resume before screening.";
+                document.getElementById('scoreSummary').textContent = errorMessage;
+                resultsContainer.classList.remove('hidden');
+                return;
+            }
+            
+            // UI State: Disable button, show loading
+            analyzeBtn.disabled = true;
+            loadingIndicator.classList.remove('hidden');
+            resultsContainer.classList.add('hidden');
+
+            const systemPrompt = `You are an expert HR Analyst and Resume Screening AI. Your task is to objectively compare a candidate's resume (provided either as text or as an attached PDF file) against a Job Description (JD). You must perform four functions: 1) Extract key facts (skills, experience, education) from the resume. 2) Compare those facts against the explicit and implicit requirements in the JD. 3) Check if a specific, hard requirement (like minimum years of experience or degree) is met. 4) Calculate a single match score (0-100) and identify specific matches and gaps.
+
+            Your output MUST be a JSON object, exactly matching the provided schema. Do not include any pre-amble or explanation outside the JSON object.`;
+
+            let contents;
+            let userPromptText = `Analyze the candidate resume against the JD below and return a JSON object based on the schema.`;
+
+            if (uploadedFile.isPdf && uploadedFile.data) {
+                // Multimodal input (PDF file + JD text)
+                contents = [{
+                    parts: [
+                        { text: userPromptText + ` JD: ${jd}` },
+                        { inlineData: { mimeType: uploadedFile.mimeType, data: uploadedFile.data } }
+                    ]
+                }];
+            } else {
+                // Text input (JD text + Resume text from textarea)
+                const userQuery = userPromptText + `\n\n**JOB DESCRIPTION:**\n${jd}\n\n**CANDIDATE RESUME TEXT:**\n${resumeText}`;
+                contents = [{ parts: [{ text: userQuery }] }];
+            }
+
+            const payload = {
+                contents: contents,
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            match_score: {
+                                type: "INTEGER",
+                                description: "A numerical match score from 0 (poor fit) to 100 (perfect fit)."
+                            },
+                            summary: {
+                                type: "STRING",
+                                description: "A concise, single-paragraph evaluation summarizing the candidate's overall fit and major strengths/weaknesses."
+                            },
+                            extracted_info: {
+                                type: "OBJECT",
+                                description: "Key structured information extracted from the candidate's resume.",
+                                properties: {
+                                    years_experience: {
+                                        type: "STRING",
+                                        description: "The total years of relevant professional experience mentioned in the resume (e.g., '6 years')."
+                                    },
+                                    education_level: {
+                                        type: "STRING",
+                                        description: "The highest relevant degree obtained (e.g., 'Master of Science in CS' or 'BS Engineering')."
+                                    }
+                                },
+                                required: ["years_experience", "education_level"]
+                            },
+                            hard_req_status: {
+                                type: "OBJECT",
+                                description: "Check if the candidate meets a critical, non-negotiable requirement implicitly or explicitly stated in the JD.",
+                                properties: {
+                                    met: {
+                                        type: "BOOLEAN",
+                                        description: "True if the critical requirement is met, false otherwise."
+                                    },
+                                    requirement: {
+                                        type: "STRING",
+                                        description: "The specific hard requirement that was checked (e.g., 'Minimum 5 years experience in React')."
+                                    }
+                                },
+                                required: ["met", "requirement"]
+                            },
+                            skills_matched: {
+                                type: "ARRAY",
+                                description: "A list of 3-5 key skills or requirements from the JD that were successfully met.",
+                                items: { type: "STRING" }
+                            },
+                            gaps_identified: {
+                                type: "ARRAY",
+                                description: "A list of 3-5 critical requirements from the JD that are missing or weakly supported.",
+                                items: { type: "STRING" }
+                            }
+                        },
+                        required: ["match_score", "summary", "extracted_info", "hard_req_status", "skills_matched", "gaps_identified"]
+                    }
+                }
+            };
+
+            try {
+                const response = await fetchWithRetry(async () => {
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!res.ok) {
+                        throw new Error(`HTTP error! status: ${res.status}`);
+                    }
+                    return res.json();
+                });
+
+                const candidate = response.candidates?.[0];
+                if (!candidate || !candidate.content?.parts?.[0]?.text) {
+                    throw new Error("Invalid response structure from API. Response was empty.");
+                }
+
+                const jsonText = candidate.content.parts[0].text;
+                const result = JSON.parse(jsonText);
+
+                renderResults(result);
+
+            } catch (error) {
+                console.error("Analysis Error:", error);
+                const errorMsg = `Failed to perform analysis. Please check your network connection or the complexity of the input. Details: ${error.message}`;
+                document.getElementById('scoreSummary').textContent = errorMsg;
+                resultsContainer.classList.remove('hidden');
+            } finally {
+                // UI State: Re-enable button, hide loading
+                analyzeBtn.disabled = false;
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Renders the structured results to the UI.
+         * @param {object} result - The parsed JSON result from the Gemini API.
+         */
+        function renderResults(result) {
+            const score = Math.min(100, Math.max(0, result.match_score || 0)); // Clamp score
+            const color = getColorForScore(score);
+
+            // 1. Match Score
+            matchScoreBar.style.width = `${score}%`;
+            matchScoreBar.style.backgroundColor = color;
+            matchScoreBar.textContent = `${score}%`;
+            scoreSummary.textContent = result.summary || "No detailed summary provided by AI.";
+
+            // 2. Hard Requirement Check
+            const status = result.hard_req_status || {};
+            if (status.met) {
+                hardReqStatusCard.classList.remove('bg-red-50', 'border-danger');
+                hardReqStatusCard.classList.add('bg-green-50', 'border-success');
+                reqIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>`;
+                reqText.textContent = `Met: ${status.requirement}`;
+                hardReqStatusCard.querySelector('p').classList.remove('text-danger');
+                hardReqStatusCard.querySelector('p').classList.add('text-success');
+            } else {
+                hardReqStatusCard.classList.remove('bg-green-50', 'border-success');
+                hardReqStatusCard.classList.add('bg-red-50', 'border-danger');
+                reqIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`;
+                reqText.textContent = `Missed: ${status.requirement || 'Not specified'}`;
+                 hardReqStatusCard.querySelector('p').classList.remove('text-success');
+                hardReqStatusCard.querySelector('p').classList.add('text-danger');
+            }
+
+            // 3. Extracted Info
+            const info = result.extracted_info || {};
+            extractedExp.textContent = info.years_experience || "N/A - Could not be determined";
+            extractedEdu.textContent = info.education_level || "N/A - Could not be determined";
+            
+            // 4. Matched Skills List
+            skillsMatchedList.innerHTML = '';
+            if (result.skills_matched && Array.isArray(result.skills_matched) && result.skills_matched.length > 0) {
+                result.skills_matched.forEach(skill => {
+                    const li = document.createElement('li');
+                    li.textContent = skill;
+                    skillsMatchedList.appendChild(li);
+                });
+            } else {
+                 skillsMatchedList.innerHTML = '<li class="text-gray-500">No specific top matches identified.</li>';
+            }
+
+            // 5. Gaps Identified List
+            gapsIdentifiedList.innerHTML = '';
+            if (result.gaps_identified && Array.isArray(result.gaps_identified) && result.gaps_identified.length > 0) {
+                result.gaps_identified.forEach(gap => {
+                    const li = document.createElement('li');
+                    li.textContent = gap;
+                    gapsIdentifiedList.appendChild(li);
+                });
+            } else {
+                 gapsIdentifiedList.innerHTML = '<li class="text-gray-500">No significant gaps identified.</li>';
+            }
+
+            // Show results container
+            resultsContainer.classList.remove('hidden');
+        }
+
+    </script>
+</body>
+</html>
